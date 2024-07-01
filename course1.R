@@ -58,4 +58,4 @@ library(gwascat)
 data(ebicat_2020_04_30)
 ebicat_2020_04_30
 
-#test
+#
