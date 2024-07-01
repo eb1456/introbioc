@@ -58,4 +58,14 @@ library(gwascat)
 data(ebicat_2020_04_30)
 ebicat_2020_04_30
 
-#
+library(tissuesGeneExpression)
+data(tissuesGeneExpression)
+
+head(e[,1:5])
+table(tissue)
+
+BiocManager::install(c("Homo.sapiens",
+                       "GenomicFeatures",
+                       "genomicsclass/ERBS",
+                       "genomicsclass/ph525x"))
+
