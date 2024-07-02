@@ -108,4 +108,4 @@ x = HepG2[order(HepG2)] #first by chr, then by location;
 
 seqnames(x) #now on ordered chr's; shows efficiency of Rle class; vs. as.character(seqnames(x))
  
-test
+test1
