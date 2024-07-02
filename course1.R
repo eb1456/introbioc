@@ -107,4 +107,5 @@ x = HepG2[order(HepG2)] #first by chr, then by location;
 #key when want to plot anything along genome, order is key;
 
 seqnames(x) #now on ordered chr's; shows efficiency of Rle class; vs. as.character(seqnames(x))
-
+ 
+test
