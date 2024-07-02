@@ -1,5 +1,25 @@
 # https://genomicsclass.github.io/book/ chapters 11, 12, 13
 
+install.packages("usethis")
+library(usethis)
+
+use_git_config(user.name = "Ezra Baraban", user.email = "ezra.baraban@gmail.com")
+
+use_git() 
+
+create_github_token()
+
+#install.packages("gitcreds")
+
+library(gitcreds)
+
+gitcreds_set()
+
+
+
+
+
+
 BiocManager::version()
 
 BiocManager::install("BSgenome.Hsapiens.UCSC.hg19")
@@ -108,4 +128,4 @@ x = HepG2[order(HepG2)] #first by chr, then by location;
 
 seqnames(x) #now on ordered chr's; shows efficiency of Rle class; vs. as.character(seqnames(x))
  
-test1
+
