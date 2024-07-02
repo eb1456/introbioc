@@ -101,7 +101,7 @@ class(chr)
 table(chr) #gives top chr's
 table(chr)[1:24] #gets rid of noise chr values, ie restricts to 23XY
 
-HepG2[chr=="20",]
+HepG2[chr=="20",] 
 
 x = HepG2[order(HepG2)] #first by chr, then by location;
 #key when want to plot anything along genome, order is key;
