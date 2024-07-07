@@ -286,3 +286,93 @@ v
 
 #https://genomicsclass.github.io/book/pages/bioc1_igranges.html
 
+
+#Operating on GRanges
+#https://genomicsclass.github.io/book/pages/bioc1_grangeOps.html
+
+#disjoin(ir) = same coverage; but NO overlaps; never cross any endpoints of original set;
+#gaps ~ ie introns
+
+library(GenomicRanges)
+
+ir <- IRanges(c(3, 8, 14, 15, 19, 34, 40),
+              width = c(12, 6, 6, 15, 6, 2, 7))
+
+gir = GRanges(seqnames="chr1", ir, strand=c(rep("+", 4), rep("-",3)))
+gir
+
+par(mfrow=c(4,1), mar=c(4,2,2,2))
+plotGRanges(gir, xlim=c(0,60)) 
+plotGRanges(resize(gir,1), xlim=c(0,60),col="green") #plots txn start sites, and will honor the strandedness of each range; ie will go to R if (-) strand;
+plotGRanges(flank(gir,3), xlim=c(0,60), col="purple") #ie 3bp upstream ~promoter
+plotGRanges(flank(gir,2,start=FALSE), xlim=c(0,60), col="brown") #downstream 2bp promoter
+
+# Finding Overlaps
+#Find genes close to our binding sites and annotate those genes;
+
+# load packages
+library(GenomicFeatures)
+library(GenomicRanges)
+library(IRanges)
+library(ERBS)
+
+# load ESRRA ChIP data
+data(HepG2) #liver cell line
+data(GM12878) #B-cell line
+
+browseVignettes("GenomicRanges") #loads PDF
+
+#find sites in both cell lines - ie ER sites common to both;
+# for each row in query, return overlapping row in subject
+res = findOverlaps(HepG2, GM12878)
+class(res) #Hits object; ie 1st item in HepG2 matches 12th in GM12878;
+res
+HepG2[1]
+GM12878[12]
+#ie they do overlap;
+#to extract the hits
+
+# ranges from the query for which we found a hit in the subject
+index = queryHits(res)
+index
+erbs = HepG2[index,] #ie ER binding sites = HepG2 subset of the hits that overlap w HM12878
+erbs
+
+# extract only the ranges, omit all the metadata
+granges(erbs)
+erbs
+
+# Genes as GRanges
+# so have list of overlaps; ie ESR binding sites;
+# load up defined human genes
+library(Homo.sapiens)
+ghs = genes(Homo.sapiens) #list of all ~23k genes; note that if gene is on + strand it goes from smaller to larger number w txn; vs. if on (-) strand, starts at max and goes to min number of the IRanges;
+#ie note strand tells you which is the START and which is the END;
+ghs
+
+# learn about the precede function (and related functions like follow)
+?precede #note that follow() is the opposite fxn;
+
+# for each range in erbs, find the closest preceding range in ghs
+index = precede(erbs, ghs) #ie query ERBS vs. human genome; gives the gene ID's
+#for each entry in ERBS, what's the nearest gene that PRECEDES ie is upstream of it;
+
+ghs[index[1:3]] #1st three human genome genes that are upstream of ER binding sites;
+erbs[1:3]    # note result is strand-aware
+ghs[index]
+
+# distance between binding sites and nearest preceding genes
+distance(erbs, ghs[index]) #ie between ER sites and adj genes
+
+# find transcription start site nearest to each binding site
+tssgr = resize(ghs, 1) #compress all genes
+tssgr
+
+# distance between binding site and nearest TSS
+d = distanceToNearest(erbs, tssgr)
+queryHits(d) #to get Hits into object we can work with;
+dists = values(d)$distance #so these are the distnaces bw ER sites and adj genes;
+hist(dists, nc=100, xlim=c(0,100000))
+
+index = subjectHits(d)[dists < 1000] #genes that are closest to the binding sites;
+index
