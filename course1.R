@@ -371,7 +371,7 @@ tssgr
 # distance between binding site and nearest TSS
 d = distanceToNearest(erbs, tssgr)
 queryHits(d) #to get Hits into object we can work with;
-dists = values(d)$distance #so these are the distnaces bw ER sites and adj genes;
+dists = values(d)$distance #so these are the distances bw ER sites and adj genes;
 hist(dists, nc=100, xlim=c(0,100000))
 
 index = subjectHits(d)[dists < 1000] #genes that are closest to the binding sites;
