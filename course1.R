@@ -376,3 +376,224 @@ hist(dists, nc=100, xlim=c(0,100000))
 
 index = subjectHits(d)[dists < 1000] #genes that are closest to the binding sites;
 index
+
+# basics of DNAStrings
+dna <- DNAString("TCGAGCAAT")    # define a DNAString
+dna
+length(dna)    # number of bases in a DNAString
+DNAString("JQX")    # error - invalid bases
+DNAString("NNNACGCGC-TTA-CGGGCTANN")    # valid sequence with unknowns and gaps
+dna[4:6]    # extract a substring
+as.character(dna)    # convert DNAString to character
+
+# basics of DNAStringSets
+set1 <- DNAStringSet(c("TCA", "AAATCG", "ACGTGCCTA", "CGCGCA", "GTT", "TCA"))    # define a DNAStringSet
+set1
+set1[2:3]    # extract subset of sequences
+set1[[4]]    # extract one sequence as a single DNAString
+length(set1)    # number of DNAstrings in set
+width(set1)    # size of each DNAString
+duplicated(set1)    # detect which sequences are duplicated
+unique(set1)    # keep only unique sequences
+sort(set1)
+
+dna_seq <- DNAString("ATCGCGCGCGGCTCTTTTAAAAAAACGCTACTACCATGTGTGTCTATC")
+
+# analyze DNAStrings
+letterFrequency(dna_seq, "A")    # count A in sequence
+letterFrequency(dna_seq, "GCTA")    # count G or C in sequence
+length(dna_seq)
+dinucleotideFrequency(dna_seq)    # frequencies of all dinucleotides
+trinucleotideFrequency(dna_seq)    # frequencies of all trinucleotides
+
+# convert DNAStrings
+reverseComplement(dna_seq)    # find reverse complement
+translate(dna_seq)    # amino acid translation
+
+#Matching and Counting with Biostrings
+# count and match on individual Biostrings
+dna_seq <- DNAString("ATCGCGCGCGGCTCTTTTAAAAAAACGCTACTACCATGTGTGTCTATC")
+dna_seq
+countPattern("CG", dna_seq)    # pattern "CG" occurs 5 times
+matchPattern("CG", dna_seq)    # locations of pattern "CG"
+start(matchPattern("CG", dna_seq))    # start locations of the pattern
+matchPattern("CTCTTTTAAAAAAACGCTACTACCATGTGT", dna_seq)    # match patterns of any length
+
+# check for pattern and its reverse complement
+countPattern("TAG", dna_seq)
+countPattern(reverseComplement(DNAString("TAG")), dna_seq)
+
+# count and match on sets of Biostrings
+set2 <- DNAStringSet(c("AACCGGTTTCGA", "CATGCTGCTACA", "CGATCGCGCCGG", "TACAACCGTACA"))
+set2
+vcountPattern("CG", set2)    # CG counts for entire DNAStringSet, ie VECTOR count pattern;
+
+vmatchPattern("CG", set2) #Unlike vcountPattern(), which simply counts occurrences, vmatchPattern() provides detailed information about where the pattern appears in each sequence.
+#ie gives iRanges with all the matches; not just counting them;
+
+vmatchPattern("CG", set2)[[1]]    # access matches for the first element of the DNAStringSet
+
+#Getting the sequence of regions
+library(ERBS)
+data(HepG2)
+HepG2 #where ER binds from ChipSeq
+
+# load and inspect human reference genome
+library(BSgenome.Hsapiens.UCSC.hg19)
+Hsapiens
+
+# extract chromosome 17 sequence
+c17 = Hsapiens$chr17
+c17
+
+?getSeq
+class(Hsapiens)
+showMethods("getSeq")
+
+# collection of DNA strings with ChIP-seq binding peaks
+hepseq = getSeq(Hsapiens, HepG2)
+hepseq #actually get the sequence from a Granges;
+length(HepG2)    # same number of sequences
+width(HepG2)[1:5]    # widths match
+
+# collection of shifted DNA strings with no relationship to binding sequences - essentially random
+rhepseq = getSeq(Hsapiens, shift(HepG2, 2500))
+
+# count occurrences of a motif in DNA sequences
+mot = "TCAAGGTCA"
+?vmatchPattern
+vcountPattern(mot, hepseq)
+
+# consider both forward matches and reverse complement matches 
+sum(vcountPattern(mot, hepseq))    # forward pattern match
+sum(vcountPattern(mot, reverseComplement(hepseq)))    # reverse pattern match
+
+## compare motif occurrence in binding peak to random upstream sequences
+# count of motifs in binding peaks
+sum(vcountPattern(mot, hepseq)) +
+  sum(vcountPattern(mot, reverseComplement(hepseq)))
+# count of motifs in randomly selected regions of equal length
+sum(vcountPattern(mot, rhepseq)) +
+  sum(vcountPattern(mot, reverseComplement(rhepseq)))
+
+# for real analysis, use MotifDb package, probabilistic binding packages like MEME and FIMO
+
+# Management of genome-scale data
+
+#ExpressionSet structure for microarray data and the SummarizedExperiment structure for NGS data.
+
+BiocManager::install(c("Biobase",
+                       "GEOquery",
+                       "genomicsclass/GSE5859Subset",
+                       "affy",
+                       "hgu95acdf",
+                       "genefilter",
+                       "parathyroidSE",
+                       "airway",
+                       "pasillaBamSubset",
+                       "Rsamtools",
+                       "GenomicAlignments",
+                       "ArrayExpress",
+                       "NGScopyData",
+                       "AnnotationDbi"))
+
+#Bioconductor Infrastructure: ExpressionSet (arrays) and SummarizedExperiment (NGS- rows are GRanges)
+#ExpressionSet, is w/i Biobase library
+
+library(Biobase)
+library(GEOquery)
+
+geoq <- getGEO("GSE9514")    # download a microarray dataset from GEO
+names(geoq)    
+e <- geoq[[1]]    # extract ExpressionSet
+e
+
+# exprs gives matrix of microarray values
+dim(e)    # number of features and samples in ExpressionSet
+ncol(e)   # no. of samples
+nrow(e)
+
+View(exprs(e))[1:3,1:3]
+head(exprs(e))[,1]    # first column
+exprs(e)[1,]    # first row
+exprs(e)["10000_at",]    # can also index by name
+rownames(e)[1]    # row names are probe sets
+dim(exprs(e))    # rows are features, columns are samples
+
+# pData gives phenotype data (sample information)
+pData(e)[1:3,1:6]
+names(pData(e))
+pData(e)$characteristics_ch1    # column in GEO to describe experimental state/condition
+
+as.numeric(factor(pData(e)$characteristics_ch1))    # help see replicates of each state
+dim(pData(e))    # rows of pData correspond to columns of exprs
+dim(e)
+
+# fData gives feature data (probe information)
+fData(e)[1:3,1:3]
+dim(fData(e))    # rows of fData correspond to rows of exprs
+names(fData(e)) 
+head(fData(e)$"Gene Symbol")
+head(rownames(e))
+
+# additional annotation tied to ExpressionSet
+experimentData(e)
+annotation(e)
+
+#Reading Microarray Raw Data: Single-Color Arrays
+# code edited to set your personal working directory
+wd <- getwd()
+wd
+datadir <- paste0(wd, "/rawdata-master")    # downloaded files, after unzipping
+datadir
+basedir <- paste0(datadir, "/celfiles")
+basedir
+setwd(basedir)
+library(affy)
+
+tab <- read.delim("sampleinfo.txt",check.names=FALSE,as.is=TRUE)
+View(tab)
+rownames(tab) <- tab$filenames
+tab
+fns <- list.celfiles(basedir)
+fns
+fns %in% tab[,1] ##check
+ab <- ReadAffy(filenames = file.path(basedir, tab[,1]), phenoData=tab) #AffyBatch object
+
+dim(pm(ab))
+dim(pData(ab)) #phenotype info
+rownames(ab) #all the probes
+colnames(pm(ab)) #all the samples
+annotation(ab) #defines the geneset, can translate to gene names;
+
+e <- rma(ab)    # preprocess probe-level data into gene-level data
+#perform the Robust Multi-array Average (RMA) normalization method for Affymetrix microarray data
+
+ejust <- justRMA(filenames=tab[,1],phenoData=tab)    # read and process data to gene-level in one command
+dim(ejust)
+
+#Reading Microarray Raw Data: Two-Color Arrays / limma
+
+# datadir defined in previous video
+library(limma)
+library(rafalib)
+basedir <- paste0(datadir, "/agilent")
+basedir
+setwd(basedir)
+targets <- readTargets("TargetBeta7.txt")
+RG <- read.maimages(targets$FileName, source="genepix") #read in 2 color data (red/green)
+
+MA <- MA.RG(RG,bc.method="none") #stores from red/green to avg of logs;
+dim(RG$R)
+dim(RG$G)
+dim(MA$M) #same info, just transformed from red/green
+dim(MA$A)
+plot(MA$A[,1], MA$M[,1])    # MA plot for first sample
+
+# microarray image
+mypar(1,1)
+imageplot(MA$M[,2], RG$printer, zlim=c(-3,3))
+dev.off()
+
+#The SummarizedExperiment class
+
