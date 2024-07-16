@@ -596,5 +596,87 @@ imageplot(MA$M[,2], RG$printer, zlim=c(-3,3))
 dev.off()
 
 #The SummarizedExperiment class
+#https://genomicsclass.github.io/book/pages/dataman2019.html
 
+library(parathyroidSE)
+data(parathyroidGenesSE)
+se <- parathyroidGenesSE
+se
+
+# assay contains results of the assay
+dim(se)
+assay(se)[1:3,1:3] #RNAseq counts for each gene, across samples;
+dim(assay(se))    # rows = features (ranges), columns = samples
+
+# colData contains sample information
+colData(se)[1:3,1:6] #~ to Pdata;
+dim(colData(se))
+names(colData(se)) #diff parameters
+colData(se)$treatment #see what rx group each sample belongs to
+as.numeric(colData(se)$treatment) #see what group each sample belongs to;
+
+# rowRanges contains feature information
+rowRanges(se)[1]
+class(rowRanges(se))
+length(rowRanges(se))    # number of genes
+length(rowRanges(se)[[1]])    # number of exons for first gene
+head(rownames(se))
+metadata(rowRanges(se))
+
+# additional metadata, including sample information
+metadata(se)$MIAME
+abstract(metadata(se)$MIAME)
+
+#Importing NGS data in R
+#Rsamtools provides low-level functions for reading and parsing raw NGS data stored in standard formats (more details below),
+#vs: GenomicAlignments provides high-level functions and classes for reading and organizing NGS data as Bioconductor objects based on the GRanges class.
  
+#http://genomicsclass.github.io/book/pages/import_NGS.html
+
+#FASTQ files from the sequencing machine ->(either 1 file for a single-end sequencing sample, or 2 files for a paired-end sequencing sample).
+#alignment software -> makes SAM -> compressed to BAM
+#get sample BAM files
+library(pasillaBamSubset)
+library(Rsamtools)
+filename <- untreated1_chr4()
+
+bf <- BamFile(filename) #creates a BAM
+seqinfo(bf) #gives chr location for BAM file sequences
+sl <- seqlengths(bf)
+sl
+quickBamFlagSummary(bf)
+
+#A number of functions in Rsamtools take an argument param, which expects a ScanBamParam specification.
+#two important options are:
+#  what - what kind of information to extract?
+#  which - which ranges of alignments to extract?
+
+#we can quickly pull out information about reads from a particular genomic range. Here we count the number of records (reads) on chromosome 4:
+gr <- GRanges("chr4", IRanges(1, sl["chr4"]))
+gr
+countBam(bf, param = ScanBamParam(which = gr))
+
+reads <- scanBam(BamFile(filename, yieldSize = 5))
+reads
+
+class(reads)
+names(reads[[1]])
+reads[[1]]$pos    # the aligned start position
+reads[[1]]$rname    # the chromosome
+reads[[1]]$strand    # the strand
+reads[[1]]$qwidth    # the width of the read
+reads[[1]]$seq    # the sequence of the read
+
+#The GenomicAlignments package
+
+library(GenomicAlignments)
+ga <- readGAlignments(bf)
+ga
+length(ga)
+
+granges(ga[1])
+
+gr <- GRanges("chr4", IRanges(700000, 800000))
+(fo <- findOverlaps(ga, gr))    # which reads over this range
+countOverlaps(gr, ga)    # count overlaps of range with the reads
+table(ga %over% gr)    # logical vector of read overlaps with the range
