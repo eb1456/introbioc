@@ -680,3 +680,80 @@ gr <- GRanges("chr4", IRanges(700000, 800000))
 (fo <- findOverlaps(ga, gr))    # which reads over this range
 countOverlaps(gr, ga)    # count overlaps of range with the reads
 table(ga %over% gr)    # logical vector of read overlaps with the range
+
+#Creating a count table from a BAM file -> ie MAKING a SummarizedExperiment object
+#from RNA or DNA seq data
+
+# libraries with BAM files and annotation
+BiocManager::install("pasillaBamSubset")
+BiocManager::install("TxDb.Dmelanogaster.UCSC.dm3.ensGene")
+library(pasillaBamSubset)
+library(TxDb.Dmelanogaster.UCSC.dm3.ensGene)
+txdb <- TxDb.Dmelanogaster.UCSC.dm3.ensGene
+
+grl <- exonsBy(txdb, by="gene")    # make GRangesList of exons for each gene
+grl[100]    # GRangesList of exons for 100th gene
+grl[[100]]    # GRanges with exons of 100th gene
+grl[[100]][1]    # first exon of 100th gene
+
+# paths to BAM files
+fl1 <- untreated1_chr4()
+fl2 <- untreated3_chr4()
+
+# libraries for importing BAM files
+library(Rsamtools)
+library(GenomicRanges)
+library(GenomicAlignments)
+
+#https://github.com/genomicsclass/labs/blob/master/bioc/read_counting.Rmd
+
+# specify files with BamFileList
+fls <- BamFileList(c(fl1, fl2))
+names(fls) <- c("first","second")
+
+# find reads that overlap exons
+so1 <- summarizeOverlaps(features=grl,
+                         reads=fls,
+                         ignore.strand=TRUE)
+so1
+
+# examine count matrix
+head(assay(so1))
+colSums(assay(so1))
+
+# examine rest of SummarizedExperiment components
+rowRanges(so1)
+colData(so1)
+colData(so1)$sample <- c("one","two")    # add sample information
+colData(so1)
+metadata(rowRanges(so1)) 
+
+# exploratory data analysis of counts
+x <- assay(so1)[,1] #first column of counts;
+x
+hist(x[x > 0], col="grey")
+hist(x[x > 0 & x < 10000], col="grey")
+plot(assay(so1) + 1, log="xy")
+
+# count second file as paired-end reads
+# ?untreated3_chr4
+# ?summarizeOverlaps
+fls <- BamFileList(fl2)
+so2 <- summarizeOverlaps(features=grl,
+                         reads=fls,
+                         ignore.strand=TRUE,
+                         singleEnd=FALSE, 
+                         fragments=TRUE) 
+
+#fragments = TRUE, if only one of a pair of reads maps, then still count it
+#singleEnd = FALSE, 
+
+colSums(assay(so2))
+colSums(assay(so1))
+
+# show there are half as many reads in so2 as so1
+plot(assay(so1)[,2], assay(so2)[,1], xlim=c(0,5000), ylim=c(0,5000),
+     xlab="single end counting", ylab="paired end counting")
+abline(0,1)
+abline(0,.5)
+
