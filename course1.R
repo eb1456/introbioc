@@ -757,3 +757,10 @@ plot(assay(so1)[,2], assay(so2)[,1], xlim=c(0,5000), ylim=c(0,5000),
 abline(0,1)
 abline(0,.5)
 
+###
+help.start()
+
+library(GSE5859Subset)
+library(Biobase)
+
+
